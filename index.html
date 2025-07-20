@@ -1,0 +1,112 @@
+<!DOCTYPE html> <html lang="es"> <head> <meta charset="UTF-8" /> <meta name="viewport" content="width=device-width, initial-scale=1.0"/> <title>Malla Ingeniería Civil Industrial - UCH</title> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/> <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script> <style> :root { --aprobado: #a6e3f9; --bloqueado: #f6c2d6; --disponible: #e0ffe0; --fondo-claro: #ffffff; --fondo-oscuro: #121212; --texto-claro: #000000; --texto-oscuro: #ffffff; --celeste: #2196F3; --rosado: #F48FB1; }
+css
+Copiar
+Editar
+
+	body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background-color: var(--fondo-claro);
+  color: var(--texto-claro);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.dark {
+  background-color: var(--fondo-oscuro);
+  color: var(--texto-oscuro);
+}
+
+header {
+  background-color: var(--celeste);
+  color: white;
+  padding: 10px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 1rem;
+  margin: 1rem;
+}
+
+.semestre {
+  background: #f2f2f2;
+  border-left: 5px solid var(--celeste);
+  padding: 10px;
+  border-radius: 5px;
+  transition: all 0.4s ease;
+}
+
+.semestre.dark {
+  background: #1e1e1e;
+}
+
+.semestre h2 {
+  margin-top: 0;
+}
+
+.ramo {
+  background-color: var(--disponible);
+  padding: 6px;
+  margin: 4px 0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.ramo.aprobado {
+  background-color: var(--aprobado) !important;
+  animation: fadeIn 0.3s;
+}
+
+.ramo.bloqueado {
+  background-color: var(--bloqueado) !important;
+  cursor: not-allowed;
+}
+
+.tooltip {
+  display: none;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  font-size: 12px;
+  padding: 5px;
+  border-radius: 4px;
+  position: absolute;
+  z-index: 10;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 1rem;
+}
+
+button {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  background-color: var(--celeste);
+  color: white;
+  cursor: pointer;
+}
+
+.stats {
+  padding: 10px 20px;
+  background: #f9f9f9;
+}
+
+.dark .stats {
+  background: #2c2c2c;
+}
+
+@keyframes fadeIn {
+  from {opacity: 0;}
+  to {opacity: 1;}
+}
+
+</style> </head> <body> <header> <h1>Malla Ingeniería Civil Industrial - UCH</h1> <button onclick="toggleModo()">🌗 Modo Claro/Oscuro</button> </header> <section class="controls"> <button onclick="exportarProgreso()">⬇️ Exportar Progreso</button> <input type="file" id="importador" onchange="importarProgreso()" /> <button onclick="simularAvance()">🎯 Simular Avance</button> <div><strong>Créditos Aprobados:</strong> <span id="creditos">0</span></div> </section> <section class="grid" id="malla"></section> <div class="tooltip" id="tooltip"></div> <script> const cursos = [ // Semestre I {codigo: "MA1001", nombre: "INTRODUCCIÓN AL CÁLCULO", creditos: 6, semestre: "I", prerequisitos: []}, {codigo: "MA1101", nombre: "INTRODUCCIÓN AL ÁLGEBRA", creditos: 6, semestre: "I", prerequisitos: []}, {codigo: "FI1000", nombre: "INTRODUCCIÓN A LA FÍSICA CLÁSICA", creditos: 6, semestre: "I", prerequisitos: []}, {codigo: "CC1000", nombre: "HERRAMIENTAS COMPUTACIONALES", creditos: 3, semestre: "I", prerequisitos: []}, {codigo: "CD1100", nombre: "DESAFÍOS DE INNOVACIÓN", creditos: 6, semestre: "I", prerequisitos: []}, {codigo: "BT1211", nombre: "BIOLOGÍA PARA INGENIERÍA", creditos: 3, semestre: "I", prerequisitos: []}, // Semestre II {codigo: "MA1002", nombre: "CÁLCULO DIFERENCIAL E INTEGRAL", creditos: 6, semestre: "II", prerequisitos: ["MA1001"]}, {codigo: "MA1102", nombre: "ÁLGEBRA LINEAL", creditos: 6, semestre: "II", prerequisitos: ["MA1101"]}, {codigo: "FI1100", nombre: "FÍSICA MODERNA", creditos: 6, semestre: "II", prerequisitos: ["FI1000"]}, {codigo: "CC1002", nombre: "INTRODUCCIÓN A LA PROGRAMACIÓN", creditos: 6, semestre: "II", prerequisitos: ["CC1000"]}, {codigo: "CD1201", nombre: "PROYECTO DE INNOVACIÓN", creditos: 3, semestre: "II", prerequisitos: ["CD1100"]}, {codigo: "FG2000", nombre: "FORMACIÓN GENERAL", creditos: 3, semestre: "II", prerequisitos: []}, // (continúa con III a XI...) // Semestre XI {codigo: "IN6193", nombre: "PROYECTO DE TÍTULO", creditos: 15, semestre: "XI", prerequisitos: ["IN4102"]}, {codigo: "IN6192", nombre: "PRÁCTICA PROFESIONAL EXTENDIDA", creditos: 15, semestre: "XI", prerequisitos: ["IN4191"]}, {codigo: "EI2090", nombre: "EXAMEN DE SUFICIENCIA EN INGLÉS II", creditos: 0, semestre: "XI", prerequisitos: ["EI1090"]}, ]; const estado = JSON.parse(localStorage.getItem("estadoCursos") || "{}"); function construirMalla() { const malla = document.getElementById("malla"); malla.innerHTML = ""; const semestresUnicos = [...new Set(cursos.map(c => c.semestre))]; semestresUnicos.forEach(sem => { const bloque = document.createElement("div"); bloque.className = "semestre"; bloque.innerHTML = `<h2>Semestre ${sem}</h2>`; const cursosSemestre = cursos.filter(c => c.semestre === sem); cursosSemestre.forEach(curso => { const div = document.createElement("div"); div.className = "ramo"; div.innerText = `${curso.codigo} - ${curso.nombre} (${curso.creditos})`; div.dataset.codigo = curso.codigo; if (estado[curso.codigo]) { div.classList.add("aprobado"); } else if (!curso.prerequisitos.every(req => estado[req])) { div.classList.add("bloqueado"); div.title = `Requiere: ${curso.prerequisitos.join(", ")}`; } div.onclick = () => { if (div.classList.contains("bloqueado")) return; estado[curso.codigo] = !estado[curso.codigo]; localStorage.setItem("estadoCursos", JSON.stringify(estado)); construirMalla(); actualizarCreditos(); }; bloque.appendChild(div); }); malla.appendChild(bloque); }); } function actualizarCreditos() { let suma = 0; cursos.forEach(c => { if (estado[c.codigo]) suma += c.creditos; }); document.getElementById("creditos").textContent = suma; } function toggleModo() { document.body.classList.toggle("dark"); document.querySelectorAll(".semestre").forEach(s => s.classList.toggle("dark")); } function exportarProgreso() { const blob = new Blob([JSON.stringify(estado)], {type: "application/json"}); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "progreso.json"; a.click(); } function importarProgreso() { const file = document.getElementById("importador").files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { const datos = JSON.parse(e.target.result); localStorage.setItem("estadoCursos", JSON.stringify(datos)); location.reload(); }; reader.readAsText(file); } function simularAvance() { const elegibles = cursos.filter(c => !estado[c.codigo] && c.prerequisitos.every(r => estado[r])); alert("Puedes tomar:\n" + elegibles.map(e => `${e.codigo} - ${e.nombre}`).join("\n")); } construirMalla(); actualizarCreditos(); </script> </body> </html>
+	
